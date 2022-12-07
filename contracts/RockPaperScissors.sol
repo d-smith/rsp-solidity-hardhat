@@ -9,12 +9,12 @@ contract RockPaperScissors {
     struct Player {
         address addr;
         bytes32 hashedMove;
-        uint revealedMove ;
+        string revealedMove ;
     }
 
-    uint public constant ROCK = 1;
-    uint public constant PAPER = 2;
-    uint public constant SCISSORS = 3;
+    string public constant ROCK = "rock";
+    string public constant PAPER = "paper";
+    string public constant SCISSORS = "scissors";
    
 
     Player[2] private players;
@@ -30,11 +30,13 @@ contract RockPaperScissors {
 
     GameState private  gameState;
 
-    address private owner;
+    address public owner;
     uint256 moveBase;
 
     event Winner(address player);
     event StaleMate();
+    event Move(bytes32 hash);
+    event RevealHash(uint move, string seed, bytes32 hash);
 
     constructor() {
         owner = msg.sender;
@@ -51,6 +53,8 @@ contract RockPaperScissors {
 
     function initializeGame() private validStage(GameState.Initializing) {
         gameState = GameState.AwaitingPlayers;
+        players[0] = Player(address(0),bytes32(0),"");
+        players[1] = Player(address(0),bytes32(0),"");
     }
 
     function registerToPlay() public validStage(GameState.AwaitingPlayers) {
@@ -73,6 +77,8 @@ contract RockPaperScissors {
             idx = 1;
         }
 
+        emit Move(hashedMove);
+
         assert(players[idx].hashedMove == bytes32(0));
         players[idx].hashedMove = hashedMove;
 
@@ -81,7 +87,7 @@ contract RockPaperScissors {
         }
     }
 
-    function revealMove(uint move, bytes32 salt) public validStage(GameState.Finishing) {
+    function revealMove(string calldata move , string calldata salt) public validStage(GameState.Finishing) {
        assert(players[0].addr == msg.sender ||
                 players[1].addr == msg.sender);
         uint idx = 0;
@@ -90,31 +96,32 @@ contract RockPaperScissors {
         }
 
         bytes32 revealed = sha256(abi.encodePacked(move,salt));
+
         assert(revealed == players[idx].hashedMove);
         players[idx].revealedMove = move;
 
-        uint p0Revealed = players[0].revealedMove;
-        uint p1Revealed = players[1].revealedMove;
+        string memory p0Revealed = players[0].revealedMove;
+        string memory p1Revealed = players[1].revealedMove;
 
-        if(p0Revealed > 0 && p1Revealed > 0) {
+        if(!strempty(p0Revealed) && !strempty(p1Revealed) ) {
             // Calculate winner and emit event - TODO clean this up!!!
-            if(p0Revealed == p1Revealed) {
+            if(streq(p0Revealed, p1Revealed)) {
                 emit StaleMate();
             } else {
-                if(p0Revealed == ROCK) {
-                     if( p1Revealed == SCISSORS) {
+                if(streq(p0Revealed,ROCK)) {
+                     if( streq(p1Revealed, SCISSORS) ) {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
                     }
-                } else if(p0Revealed == SCISSORS) {
-                    if( p1Revealed == PAPER) {
+                } else if( streq(p0Revealed, SCISSORS) ) {
+                    if( streq(p1Revealed, PAPER) ) {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
                     }
                 } else {
-                    if( p1Revealed == ROCK) {
+                    if( streq(p1Revealed, ROCK) ) {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
@@ -130,7 +137,17 @@ contract RockPaperScissors {
     }
 
 
+    function streq(string memory a, string memory b) internal pure returns (bool) {
+        if(bytes(a).length != bytes(b).length) {
+            return false;
+        } else {
+            return keccak256(abi.encode(a)) == keccak256(abi.encode(b));
+        }
+    }
 
+    function strempty(string memory s) internal pure returns (bool) {
+        return bytes(s).length == 0;
+    }
 
 
 }
