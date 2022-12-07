@@ -56,7 +56,7 @@ describe("RockPaperScissors contract", function () {
         it("should allow a tie game", async function () {
             const { hardhatRCP, owner, addr1, addr2 } = await loadFixture(deployRPSFixtureWith2Players);
 
-            let rockseed = ethers.utils.soliditySha256(['string', 'string'], ['rock', 'seed']);
+            let rockseed = ethers.utils.soliditySha256(['uint', 'string'], [1, 'seed']);
             await expect(
                 hardhatRCP.connect(addr1).throwDown(rockseed)
             ).to.not.be.reverted;
@@ -66,11 +66,11 @@ describe("RockPaperScissors contract", function () {
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr1).revealMove("rock", "seed")
+                hardhatRCP.connect(addr1).revealMove(1, "seed")
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr2).revealMove("rock", "seed")
+                hardhatRCP.connect(addr2).revealMove(1, "seed")
             ).to.emit(hardhatRCP, "StaleMate");
 
         });
@@ -78,8 +78,8 @@ describe("RockPaperScissors contract", function () {
         it("should allow a winner", async function () {
             const { hardhatRCP, owner, addr1, addr2 } = await loadFixture(deployRPSFixtureWith2Players);
 
-            let rockseed = ethers.utils.soliditySha256(['string', 'string'], ['rock', 'seed']);
-            let scissorsseed = ethers.utils.soliditySha256(['string', 'string'], ['scissors', 'seed']);
+            let rockseed = ethers.utils.soliditySha256(['uint', 'string'], [1, 'seed']);
+            let scissorsseed = ethers.utils.soliditySha256(['uint', 'string'], [3, 'seed']);
             await expect(
                 hardhatRCP.connect(addr1).throwDown(rockseed)
             ).to.not.be.reverted;
@@ -89,11 +89,11 @@ describe("RockPaperScissors contract", function () {
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr1).revealMove("rock", "seed")
+                hardhatRCP.connect(addr1).revealMove(1, "seed")
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr2).revealMove("scissors", "seed")
+                hardhatRCP.connect(addr2).revealMove(3, "seed")
             ).to.emit(hardhatRCP, "Winner")
                 .withArgs(addr1.address);
 
@@ -103,7 +103,7 @@ describe("RockPaperScissors contract", function () {
         it("should allow a new game after completion of first game", async function () {
             const { hardhatRCP, owner, addr1, addr2 } = await loadFixture(deployRPSFixtureWith2Players);
 
-            let rockseed = ethers.utils.soliditySha256(['string', 'string'], ['rock', 'seed']);
+            let rockseed = ethers.utils.soliditySha256(['uint', 'string'], [1, 'seed']);
             await expect(
                 hardhatRCP.connect(addr1).throwDown(rockseed)
             ).to.not.be.reverted;
@@ -113,11 +113,11 @@ describe("RockPaperScissors contract", function () {
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr1).revealMove("rock", "seed")
+                hardhatRCP.connect(addr1).revealMove(1, "seed")
             ).to.not.be.reverted;
 
             await expect(
-                hardhatRCP.connect(addr2).revealMove("rock", "seed")
+                hardhatRCP.connect(addr2).revealMove(1, "seed")
             ).to.emit(hardhatRCP, "StaleMate");
 
 
@@ -130,58 +130,5 @@ describe("RockPaperScissors contract", function () {
 
     })
 
-    /*
-    describe("Transactions", function () {
-      it("Should transfer tokens between accounts", async function () {
-        const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-          deployTokenFixture
-        );
-        // Transfer 50 tokens from owner to addr1
-        await expect(
-          hardhatToken.transfer(addr1.address, 50)
-        ).to.changeTokenBalances(hardhatToken, [owner, addr1], [-50, 50]);
-  
-        // Transfer 50 tokens from addr1 to addr2
-        // We use .connect(signer) to send a transaction from another account
-        await expect(
-          hardhatToken.connect(addr1).transfer(addr2.address, 50)
-        ).to.changeTokenBalances(hardhatToken, [addr1, addr2], [-50, 50]);
-      });
-  
-      it("should emit Transfer events", async function () {
-        const { hardhatToken, owner, addr1, addr2 } = await loadFixture(
-          deployTokenFixture
-        );
-  
-        // Transfer 50 tokens from owner to addr1
-        await expect(hardhatToken.transfer(addr1.address, 50))
-          .to.emit(hardhatToken, "Transfer")
-          .withArgs(owner.address, addr1.address, 50);
-  
-        // Transfer 50 tokens from addr1 to addr2
-        // We use .connect(signer) to send a transaction from another account
-        await expect(hardhatToken.connect(addr1).transfer(addr2.address, 50))
-          .to.emit(hardhatToken, "Transfer")
-          .withArgs(addr1.address, addr2.address, 50);
-      });
-  
-      it("Should fail if sender doesn't have enough tokens", async function () {
-        const { hardhatToken, owner, addr1 } = await loadFixture(
-          deployTokenFixture
-        );
-        const initialOwnerBalance = await hardhatToken.balanceOf(owner.address);
-  
-        // Try to send 1 token from addr1 (0 tokens) to owner.
-        // `require` will evaluate false and revert the transaction.
-        await expect(
-          hardhatToken.connect(addr1).transfer(owner.address, 1)
-        ).to.be.revertedWith("Not enough tokens");
-  
-        // Owner balance shouldn't have changed.
-        expect(await hardhatToken.balanceOf(owner.address)).to.equal(
-          initialOwnerBalance
-        );
-      });
-      
-    });*/
+    
 });

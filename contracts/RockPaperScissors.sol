@@ -7,44 +7,46 @@ pragma solidity ^0.8.9;
 contract RockPaperScissors {
 
     struct Player {
-        address addr;
-        bytes32 hashedMove;
-        string revealedMove ;
+        address addr; // set at registration time
+        bytes32 hashedMove; // hashed move to guard from other players
+        uint revealedMove ; // move revealed after all have thrown down
     }
 
-    string public constant ROCK = "rock";
-    string public constant PAPER = "paper";
-    string public constant SCISSORS = "scissors";
+    uint public constant ROCK = 1;
+    uint public constant PAPER = 2;
+    uint public constant SCISSORS = 3;
    
 
+    // Two players for a game
     Player[2] private players;
 
 
+    // We use game states to enable various game features. Note that we 
+    // should add a timeout otherwise a non-responding player can tie up the 
+    // contract state forever.
     enum GameState {
         Initializing,
-        AwaitingPlayers,
-        AwaitingMoves,
-        Finishing
+        AwaitingPlayers, // start waiting for two players to register
+        AwaitingMoves, // waiting for player moves
+        Finishing // it's all over but the shouting
     }
 
 
+    // Keep track of game state
     GameState private  gameState;
 
+    // Smart contract owner
     address public owner;
-    uint256 moveBase;
 
+    // Comunicate outcome via events
     event Winner(address player);
     event StaleMate();
-    event Move(bytes32 hash);
-    event RevealHash(uint move, string seed, bytes32 hash);
 
     constructor() {
         owner = msg.sender;
         gameState = GameState.Initializing;
         initializeGame();
     }
-
-
 
     modifier validStage(GameState reqState)
     { require(gameState == reqState);
@@ -53,8 +55,8 @@ contract RockPaperScissors {
 
     function initializeGame() private validStage(GameState.Initializing) {
         gameState = GameState.AwaitingPlayers;
-        players[0] = Player(address(0),bytes32(0),"");
-        players[1] = Player(address(0),bytes32(0),"");
+        players[0] = Player(address(0),bytes32(0),0);
+        players[1] = Player(address(0),bytes32(0),0);
     }
 
     function registerToPlay() public validStage(GameState.AwaitingPlayers) {
@@ -77,8 +79,6 @@ contract RockPaperScissors {
             idx = 1;
         }
 
-        emit Move(hashedMove);
-
         assert(players[idx].hashedMove == bytes32(0));
         players[idx].hashedMove = hashedMove;
 
@@ -87,7 +87,7 @@ contract RockPaperScissors {
         }
     }
 
-    function revealMove(string calldata move , string calldata salt) public validStage(GameState.Finishing) {
+    function revealMove(uint  move , string calldata salt) public validStage(GameState.Finishing) {
        assert(players[0].addr == msg.sender ||
                 players[1].addr == msg.sender);
         uint idx = 0;
@@ -100,28 +100,28 @@ contract RockPaperScissors {
         assert(revealed == players[idx].hashedMove);
         players[idx].revealedMove = move;
 
-        string memory p0Revealed = players[0].revealedMove;
-        string memory p1Revealed = players[1].revealedMove;
+        uint p0Revealed = players[0].revealedMove;
+        uint p1Revealed = players[1].revealedMove;
 
-        if(!strempty(p0Revealed) && !strempty(p1Revealed) ) {
+        if(p0Revealed > 0 && p1Revealed >0 ) {
             // Calculate winner and emit event - TODO clean this up!!!
-            if(streq(p0Revealed, p1Revealed)) {
+            if(p0Revealed == p1Revealed) {
                 emit StaleMate();
             } else {
-                if(streq(p0Revealed,ROCK)) {
-                     if( streq(p1Revealed, SCISSORS) ) {
+                if(p0Revealed == ROCK) {
+                     if( p1Revealed == SCISSORS)  {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
                     }
-                } else if( streq(p0Revealed, SCISSORS) ) {
-                    if( streq(p1Revealed, PAPER) ) {
+                } else if( p0Revealed == SCISSORS) {
+                    if( p1Revealed == PAPER)  {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
                     }
                 } else {
-                    if( streq(p1Revealed, ROCK) ) {
+                    if( p1Revealed == ROCK) {
                         emit Winner(players[0].addr);
                     } else {
                         emit Winner(players[1].addr);
@@ -135,19 +135,5 @@ contract RockPaperScissors {
         }
 
     }
-
-
-    function streq(string memory a, string memory b) internal pure returns (bool) {
-        if(bytes(a).length != bytes(b).length) {
-            return false;
-        } else {
-            return keccak256(abi.encode(a)) == keccak256(abi.encode(b));
-        }
-    }
-
-    function strempty(string memory s) internal pure returns (bool) {
-        return bytes(s).length == 0;
-    }
-
 
 }
